@@ -84,9 +84,29 @@ jobs:
 
       - name: 下载编译所需的依赖 (Install the software packages required for compilation)
         run: |
-          sudo apt update
-          sudo apt full-upgrade -y
-          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool llvm lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+          # 1️⃣ 将临时目录指向 Runner 主磁盘，避开 /tmp tmpfs 限制
+          export TMPDIR=$RUNNER_TEMP
+          sudo mkdir -p $TMPDIR
+          # 2️⃣ 彻底清理 APT 缓存与包列表（释放 Inode 和残留空间）
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo rm -rf /var/cache/apt/*
+          # 3️⃣ 更新源（CI 环境通常不需要 full-upgrade，耗时且易占满 Inode，建议注释）
+          # sudo apt-get full-upgrade -y
+          sudo apt-get update -y
+
+          sudo apt-get install -y --no-install-recommends ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+            bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
+            g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
+            libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano \
+            ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils \
+            python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
+            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+
+          # 5️⃣ 安装后再次清理，防止后续步骤空间不足
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
       - name: 克隆当前仓库 (Clone current repo)
         uses: actions/checkout@v4
@@ -120,7 +140,7 @@ jobs:
         uses: csexton/debugger-action@master
 
       - name: 启用ssh生成了.config后在编译前上传配置(Upload config before build)
-        if: ${{inputs.multithreading == true}}
+        if: ${{inputs.ssh == true}}
         uses: actions/upload-artifact@v4
         with:
           name: config-before-build
@@ -128,6 +148,9 @@ jobs:
             openWRT/.config
             openWRT/feeds.conf.default
           include-hidden-files: true
+
+      - name: 再次复制当前仓库的配置文件到 openWRT 仓库  (Copy current repo config to openWRT repo)
+        run: cp -f .config openWRT/
 
       - name: 多线程download (Download openWRT multithreading)
         working-directory: openWRT
