@@ -10,11 +10,11 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 #sed -i 's/OpenWrt/ZWRT/g' package/base-files/files/bin/config_generate
 #sed -i 's/ImmortalWrt/ZWRT/g' package/base-files/files/bin/config_generate
 
-# 添加额外的软件包，echo 方式和git clone 方式二选一即可
-#echo 'src-git kenzok8 https://github.com/kenzok8/openwrt-packages' >>feeds.conf.default
-#echo 'src-git small https://github.com/kenzok8/small' >>feeds.conf.default
-echo 'src-git UA3F https://github.com/SunBK201/UA3F.git' >>feeds.conf.default
-#git clone https://github.com/kenzok8/openwrt-packages.git package/openwrt-packages
-#git clone https://github.com/kenzok8/small.git package/small
-#git clone https://github.com/SunBK201/UA3F.git package/UA3F
-git clone https://github.com/stevenjoezhang/luci-app-adguardhome.git package/ADGH
+# 设置 UA2F 开机自启
+sed -i '/exit 0/i\/etc/init.d/ua2f start' /etc/rc.local
+
+# 统一 TTL 值为 64 (防止多设备检测)
+sed -i '/exit 0/i\iptables -t mangle -A POSTROUTING -j TTL --ttl-set 64' /etc/rc.local
+
+# 添加 UA2F 插件源
+git clone https://github.com/Zxilly/UA2F.git package/UA2F
