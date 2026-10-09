@@ -138,6 +138,8 @@ jobs:
       - name: 使用ssh连接编译环境，限时15分钟，可在连接后输入命令 `touch /tmp/keepalive` 保活 (Connect to the build environment using ssh)
         if: ${{inputs.ssh == true}}
         uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: false
 
       - name: 启用ssh生成了.config后在编译前上传配置(Upload config before build)
         if: ${{inputs.ssh == true}}
